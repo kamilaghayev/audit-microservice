@@ -1,0 +1,103 @@
+version: "3.9"
+
+services:
+  # --- Veritabanları ---
+  # Auth servisi üçün Postgres (users cədvəli)
+  postgres:
+    image: postgres:16
+    container_name: pg-auth
+    environment:
+      POSTGRES_USER: audit
+      POSTGRES_PASSWORD: audit
+      POSTGRES_DB: auth_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - pg_auth_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U audit -d auth_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Audit loglar üçün Postgres (audit_logs cədvəli)
+  postgres-audit:
+    image: postgres:16
+    container_name: pg-audit
+    environment:
+      POSTGRES_USER: audit
+      POSTGRES_PASSWORD: audit
+      POSTGRES_DB: audit_db
+    ports:
+      - "5434:5432"
+    volumes:
+      - pg_audit_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U audit -d audit_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  mongodb:
+    image: mongo:7
+    container_name: mongo-audit
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # --- Tətbiq servisləri ---
+  auth:
+    build: ./auth
+    container_name: auth
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+      PGHOST: postgres
+      PGPORT: 5432
+      PGUSER: audit
+      PGPASSWORD: audit
+      PGDATABASE: auth_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  audit-logs-postgres:
+    build: ./audit-logs-postgres
+    container_name: audit-logs-postgres
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      PGHOST: postgres-audit
+      PGPORT: 5432
+      PGUSER: audit
+      PGPASSWORD: audit
+      PGDATABASE: audit_db
+    depends_on:
+      postgres-audit:
+        condition: service_healthy
+
+  audit-logs-mongodb:
+    build: ./audit-logs-mongodb
+    container_name: audit-logs-mongodb
+    ports:
+      - "3002:3002"
+    environment:
+      PORT: 3002
+      MONGODB_URI: mongodb://mongodb:27017
+      MONGO_DATABASE: audit_db
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+volumes:
+  mongo_data:
+  pg_auth_data:
+  pg_audit_data:
