@@ -13,6 +13,7 @@ app.use(express.json());
 const swaggerSpec = {
   openapi: "3.0.0",
   info: { title: "Audit Logs MongoDB API", version: "1.0.0" },
+  servers: [{ url: "/audit-mongodb", description: "GUUUYA gateway" }],
   paths: {
     "/health": {
       get: {
@@ -27,6 +28,7 @@ const swaggerSpec = {
   },
 };
 
+app.get("/openapi.json", (_req, res) => res.json(swaggerSpec));
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use("/health", healthRouter);

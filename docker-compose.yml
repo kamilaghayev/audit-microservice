@@ -1,8 +1,7 @@
 version: "3.9"
 
 services:
-  # --- Veritabanları ---
-  # Auth servisi üçün Postgres (users cədvəli)
+# Main Auth service db
   postgres:
     image: postgres:16
     container_name: pg-auth
@@ -20,7 +19,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # Audit loglar üçün Postgres (audit_logs cədvəli)
+  # Audit logs postgres db
   postgres-audit:
     image: postgres:16
     container_name: pg-audit
@@ -38,6 +37,7 @@ services:
       timeout: 5s
       retries: 5
 
+  # Audit logs mongodb db
   mongodb:
     image: mongo:7
     container_name: mongo-audit
@@ -51,7 +51,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # --- Tətbiq servisləri ---
+  # Main Auth service
   auth:
     build: ./auth
     container_name: auth
@@ -68,6 +68,7 @@ services:
       postgres:
         condition: service_healthy
 
+  # Audit logs postgres service
   audit-logs-postgres:
     build: ./audit-logs-postgres
     container_name: audit-logs-postgres
@@ -84,6 +85,7 @@ services:
       postgres-audit:
         condition: service_healthy
 
+  # Audit logs mongodb service
   audit-logs-mongodb:
     build: ./audit-logs-mongodb
     container_name: audit-logs-mongodb
@@ -96,6 +98,22 @@ services:
     depends_on:
       mongodb:
         condition: service_healthy
+
+  # API Gateway
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      GATEWAY_PORT: 8080
+      AUTH_URL: http://auth:3001
+      AUDIT_POSTGRES_URL: http://audit-logs-postgres:3000
+      AUDIT_MONGODB_URL: http://audit-logs-mongodb:3002
+    depends_on:
+      - auth
+      - audit-logs-postgres
+      - audit-logs-mongodb
 
 volumes:
   mongo_data:
