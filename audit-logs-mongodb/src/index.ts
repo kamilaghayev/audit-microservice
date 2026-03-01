@@ -5,6 +5,7 @@ import { config } from "./config";
 import { initDb, closeDb } from "./db";
 import healthRouter from "./routes/health";
 import auditLogsRouter, { auditLogsDocs } from "./routes/auditLogs";
+import { startAuditConsumer, getMetrics, closeAuditConsumer } from "./consumer";
 
 const app = express();
 
@@ -35,6 +36,7 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use("/health", healthRouter);
 app.use("/logs", auditLogsRouter);
+app.get("/metrics", (_req, res) => res.json(getMetrics()));
 
 app.get("/", (_req, res) => {
   res.json({
@@ -48,6 +50,7 @@ async function start() {
   const { uri, database } = config.mongo;
   console.log(`DB: connecting to MongoDB ${uri}/${database}`);
   await initDb();
+  startAuditConsumer().catch((e) => console.warn("Audit consumer:", (e as Error).message));
   app.listen(config.port, () => {
     console.log(`Audit logs MongoDB listening on http://localhost:${config.port}`);
     console.log(`Health: http://localhost:${config.port}/health`);
@@ -56,6 +59,7 @@ async function start() {
 }
 
 process.on("SIGTERM", async () => {
+  await closeAuditConsumer();
   await closeDb();
   process.exit(0);
 });

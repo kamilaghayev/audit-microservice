@@ -5,6 +5,8 @@ import { config } from "./config";
 import { initDb, closeDb } from "./db";
 import healthRouter, { healthDocs } from "./routes/health";
 import auditLogsRouter, { auditLogsDocs } from "./routes/auditLogs";
+import benchmarkResultsRouter, { benchmarkResultsDocs } from "./routes/benchmarkResults";
+import { startAuditConsumer, getMetrics, closeAuditConsumer } from "./consumer";
 
 const app = express();
 
@@ -18,6 +20,7 @@ const swaggerSpec: SwaggerOptions = {
   paths: {
     ...healthDocs,
     ...auditLogsDocs,
+    ...benchmarkResultsDocs,
   },
 };
 
@@ -26,6 +29,8 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use("/health", healthRouter);
 app.use("/logs", auditLogsRouter);
+app.use("/benchmark-results", benchmarkResultsRouter);
+app.get("/metrics", (_req, res) => res.json(getMetrics()));
 
 app.get("/", (_req, res) => {
   res.json({
@@ -39,6 +44,7 @@ async function start() {
   const { host, port, user, database } = config.db;
   console.log(`DB: connecting to ${user}@${host}:${port}/${database}`);
   await initDb();
+  startAuditConsumer().catch((e) => console.warn("Audit consumer:", (e as Error).message));
   app.listen(config.port, () => {
     console.log(
       `Audit logs Postgres listening on http://localhost:${config.port}`,
@@ -49,6 +55,7 @@ async function start() {
 }
 
 process.on("SIGTERM", async () => {
+  await closeAuditConsumer();
   await closeDb();
   process.exit(0);
 });

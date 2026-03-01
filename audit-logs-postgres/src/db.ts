@@ -52,12 +52,45 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 const INDEX_CREATED_AT = `CREATE INDEX IF NOT EXISTS idx_audit_created_at ON audit_logs(created_at);`;
 const INDEX_ACTION_CREATED = `CREATE INDEX IF NOT EXISTS idx_audit_action_created ON audit_logs(action, created_at);`;
 
+const CREATE_BENCHMARK_TABLE = `
+CREATE TABLE IF NOT EXISTS benchmark_results (
+  id                    SERIAL PRIMARY KEY,
+  run_at                TIMESTAMPTZ NOT NULL DEFAULT now(),
+  run_label             TEXT,
+  duration_sec          NUMERIC(12,2),
+  http_reqs             BIGINT,
+  http_req_duration_avg_ms NUMERIC(12,2),
+  http_req_duration_p95_ms NUMERIC(12,2),
+  k6_error_rate         NUMERIC(8,6),
+  successful_registrations BIGINT,
+  postgres_processed    BIGINT,
+  postgres_errors       BIGINT,
+  postgres_throughput_per_sec NUMERIC(12,2),
+  postgres_last_db_write_ms   NUMERIC(12,2),
+  postgres_error_rate   NUMERIC(8,6),
+  mongodb_processed     BIGINT,
+  mongodb_errors        BIGINT,
+  mongodb_throughput_per_sec NUMERIC(12,2),
+  mongodb_last_db_write_ms   NUMERIC(12,2),
+  mongodb_error_rate    NUMERIC(8,6),
+  raw_summary           JSONB,
+  raw_postgres_metrics  JSONB,
+  raw_mongodb_metrics   JSONB
+);
+`;
+
+const ALTER_BENCHMARK_ADD_SUCCESSFUL = `
+ALTER TABLE benchmark_results ADD COLUMN IF NOT EXISTS successful_registrations BIGINT;
+`;
+
 export async function initDb(): Promise<void> {
   const client = await getPool().connect();
   try {
     await client.query(CREATE_TABLE_SQL);
     await client.query(INDEX_CREATED_AT);
     await client.query(INDEX_ACTION_CREATED);
+    await client.query(CREATE_BENCHMARK_TABLE);
+    await client.query(ALTER_BENCHMARK_ADD_SUCCESSFUL);
   } finally {
     client.release();
   }

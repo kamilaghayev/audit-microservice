@@ -11,6 +11,14 @@ export const config = {
     password: env.PGPASSWORD || "audit",
     database: env.PGDATABASE || "auth_db",
   },
+  rabbitmq: {
+    url: env.RABBITMQ_URL || "amqp://localhost:5672",
+    exchange: env.RABBITMQ_AUDIT_EXCHANGE || "audit.direct",
+    routingKeys: {
+      postgres: "audit.postgres",
+      mongodb: "audit.mongodb",
+    },
+  },
   jwt: {
     secret: env.JWT_SECRET || "change-me-in-production",
     accessExpiresIn: env.JWT_ACCESS_EXPIRES || "15m",

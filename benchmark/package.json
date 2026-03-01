@@ -1,0 +1,11 @@
+{
+  "name": "benchmark-scripts",
+  "private": true,
+  "description": "Parse k6 output and store benchmark results in Postgres",
+  "scripts": {
+    "store": "node parse-and-store.js"
+  },
+  "dependencies": {
+    "pg": "^8.11.3"
+  }
+}

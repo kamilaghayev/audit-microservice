@@ -6,6 +6,7 @@ import { initDb, closeDb } from "./db";
 import healthRouter, { healthDocs } from "./routes/health";
 import authRouter, { authDocs } from "./routes/auth";
 import usersRouter, { usersDocs } from "./routes/users";
+import { connectAuditAmqp, closeAuditAmqp } from "./lib/auditAmqp";
 
 const app = express();
 
@@ -67,6 +68,11 @@ async function start() {
   const { host, port, user, database } = config.db;
   console.log(`DB: connecting to ${user}@${host}:${port}/${database}`);
   await initDb();
+  try {
+    await connectAuditAmqp();
+  } catch (e) {
+    console.warn("Audit AMQP skipped:", (e as Error).message);
+  }
   app.listen(config.port, () => {
     console.log(`Auth listening on ${config.port}`);
     console.log(`Health: ${config.port}/health`);
@@ -75,6 +81,7 @@ async function start() {
 }
 
 process.on("SIGTERM", async () => {
+  await closeAuditAmqp();
   await closeDb();
   process.exit(0);
 });

@@ -64,8 +64,11 @@ services:
       PGUSER: audit
       PGPASSWORD: audit
       PGDATABASE: auth_db
+      RABBITMQ_URL: amqp://rabbitmq:rabbitmq@rabbitmq:5672
     depends_on:
       postgres:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
 
   # Audit logs postgres service
@@ -81,8 +84,13 @@ services:
       PGUSER: audit
       PGPASSWORD: audit
       PGDATABASE: audit_db
+      RABBITMQ_URL: amqp://rabbitmq:rabbitmq@rabbitmq:5672
+      BENCHMARK_BASE_URL: http://api-gateway:7070
+      AUDIT_MONGODB_METRICS_URL: http://audit-logs-mongodb:7073/metrics
     depends_on:
       postgres-audit:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
 
   # Audit logs mongodb service
@@ -95,8 +103,11 @@ services:
       PORT: 7073
       MONGODB_URI: mongodb://mongodb:27017
       MONGO_DATABASE: audit_db
+      RABBITMQ_URL: amqp://rabbitmq:rabbitmq@rabbitmq:5672
     depends_on:
       mongodb:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
 
   # API Gateway 

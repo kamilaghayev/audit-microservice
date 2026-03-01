@@ -30,8 +30,8 @@ router.post(
   usersController.create,
 );
 
-router.get("/", requireAuth, requireRole(Role.ADMIN), usersController.list);
-
+router.get("/", usersController.list);
+// requireAuth, requireRole(Role.ADMIN),
 router.patch(
   "/:id",
   requireAuth,

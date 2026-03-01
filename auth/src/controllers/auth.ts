@@ -13,6 +13,7 @@ import { hashPassword, comparePassword, hashToken } from "../services/hash";
 import * as repo from "../repositories/userRepository";
 import { AuthRequest } from "../middleware/auth";
 import { Role } from "../model/user";
+import { publishAuditEvent, type AuditTarget } from "../lib/auditAmqp";
 
 const refreshExpirySeconds = parseExpiry(config.jwt.refreshExpiresIn);
 const resetExpirySeconds = parseExpiry(config.jwt.resetExpiresIn);
@@ -39,6 +40,13 @@ function tokensResponse(res: Response, status: number, user: { id: string; email
   };
 }
 
+function getAuditTargets(req: AuthRequest): AuditTarget[] | undefined {
+  const h = req.get("X-Audit-Target")?.toLowerCase();
+  if (h === "postgres") return ["postgres"];
+  if (h === "mongodb") return ["mongodb"];
+  return undefined;
+}
+
 export async function register(req: AuthRequest, res: Response): Promise<void> {
   const { email, password, role, phoneNumber, firstname, lastname } = req.body;
   const existing = await repo.findByEmail(email);
@@ -53,6 +61,17 @@ export async function register(req: AuthRequest, res: Response): Promise<void> {
   const refreshToken = signRefreshToken(user.id, jti);
   await repo.saveRefreshToken(user.id, hashToken(refreshToken), new Date(Date.now() + refreshExpirySeconds * 1000));
   tokensResponse(res, 201, user)(access.token, refreshToken, access.expiresIn);
+  publishAuditEvent(
+    {
+      action: "auth.register",
+      actor: user.id,
+      entity: "user",
+      entityId: user.id,
+      metadata: { email: user.email },
+      timestamp: new Date().toISOString(),
+    },
+    { targets: getAuditTargets(req) }
+  ).catch((e) => console.error("Audit publish:", e));
 }
 
 export async function registerUser(req: AuthRequest, res: Response): Promise<void> {
@@ -69,6 +88,17 @@ export async function registerUser(req: AuthRequest, res: Response): Promise<voi
   const refreshToken = signRefreshToken(user.id, jti);
   await repo.saveRefreshToken(user.id, hashToken(refreshToken), new Date(Date.now() + refreshExpirySeconds * 1000));
   tokensResponse(res, 201, user)(access.token, refreshToken, access.expiresIn);
+  publishAuditEvent(
+    {
+      action: "auth.register_user",
+      actor: user.id,
+      entity: "user",
+      entityId: user.id,
+      metadata: { email: user.email },
+      timestamp: new Date().toISOString(),
+    },
+    { targets: getAuditTargets(req) }
+  ).catch((e) => console.error("Audit publish:", e));
 }
 
 export async function login(req: AuthRequest, res: Response): Promise<void> {
@@ -83,6 +113,17 @@ export async function login(req: AuthRequest, res: Response): Promise<void> {
   const refreshToken = signRefreshToken(user.id, jti);
   await repo.saveRefreshToken(user.id, hashToken(refreshToken), new Date(Date.now() + refreshExpirySeconds * 1000));
   tokensResponse(res, 200, user)(access.token, refreshToken, access.expiresIn);
+  publishAuditEvent(
+    {
+      action: "auth.login",
+      actor: user.id,
+      entity: "user",
+      entityId: user.id,
+      metadata: { email: user.email },
+      timestamp: new Date().toISOString(),
+    },
+    { targets: getAuditTargets(req) }
+  ).catch((e) => console.error("Audit publish:", e));
 }
 
 export async function refresh(req: AuthRequest, res: Response): Promise<void> {
