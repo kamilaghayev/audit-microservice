@@ -65,6 +65,53 @@ export async function initDb(): Promise<void> {
 
 export { TABLE_AUDIT_LOGS };
 
+/** Audit log row type for queries. */
+export interface AuditLogRowResult {
+  id: number;
+  action: string;
+  actor: string | null;
+  entity: string;
+  entity_id: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: Date;
+}
+
+const SEL_ALL = `SELECT id, action, actor, entity, entity_id, metadata, created_at FROM ${TABLE_AUDIT_LOGS} ORDER BY created_at DESC`;
+const INS_ONE = `INSERT INTO ${TABLE_AUDIT_LOGS} (action, actor, entity, entity_id, metadata) VALUES ($1, $2, $3, $4, $5) RETURNING id, action, actor, entity, entity_id, metadata, created_at`;
+const DEL_ONE = `DELETE FROM ${TABLE_AUDIT_LOGS} WHERE id = $1`;
+
+export async function getAllAuditLogs(limit = 1000, offset = 0): Promise<AuditLogRowResult[]> {
+  return query<AuditLogRowResult>(`${SEL_ALL} LIMIT $1 OFFSET $2`, [limit, offset]);
+}
+
+export async function createAuditLog(p: {
+  action: string;
+  actor: string | null;
+  entity: string;
+  entityId: string | null;
+  metadata: Record<string, unknown> | null;
+}): Promise<AuditLogRowResult> {
+  const rows = await query<AuditLogRowResult>(INS_ONE, [
+    p.action,
+    p.actor,
+    p.entity,
+    p.entityId,
+    p.metadata,
+  ]);
+  if (!rows[0]) throw new Error("Insert failed");
+  return rows[0];
+}
+
+export async function deleteAuditLogById(id: number): Promise<boolean> {
+  const client = await getPool().connect();
+  try {
+    const result = await client.query("DELETE FROM audit_logs WHERE id = $1", [id]);
+    return (result.rowCount ?? 0) > 0;
+  } finally {
+    client.release();
+  }
+}
+
 export async function closeDb(): Promise<void> {
   if (pool) {
     await pool.end();

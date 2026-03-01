@@ -4,6 +4,7 @@ import swaggerUi, { SwaggerOptions } from "swagger-ui-express";
 import { config } from "./config";
 import { initDb, closeDb } from "./db";
 import healthRouter, { healthDocs } from "./routes/health";
+import auditLogsRouter, { auditLogsDocs } from "./routes/auditLogs";
 
 const app = express();
 
@@ -16,6 +17,7 @@ const swaggerSpec: SwaggerOptions = {
   servers: [{ url: "/audit-postgres", description: "GUUUYA gateway" }],
   paths: {
     ...healthDocs,
+    ...auditLogsDocs,
   },
 };
 
@@ -23,6 +25,7 @@ app.get("/openapi.json", (_req, res) => res.json(swaggerSpec));
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use("/health", healthRouter);
+app.use("/logs", auditLogsRouter);
 
 app.get("/", (_req, res) => {
   res.json({
