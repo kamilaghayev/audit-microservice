@@ -3,7 +3,7 @@ import "dotenv/config";
 const env = process.env;
 
 export const config = {
-  port: parseInt(env.PORT || "3001", 10),
+  port: parseInt(env.PORT || "7071", 10),
   db: {
     host: env.PGHOST || "localhost",
     port: parseInt(env.PGPORT || "5433", 10),

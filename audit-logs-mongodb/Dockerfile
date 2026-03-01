@@ -5,5 +5,5 @@ RUN npm ci || npm install
 COPY tsconfig.json ./
 COPY src ./src
 RUN npm run build
-EXPOSE 3002
+EXPOSE 7073
 CMD ["npm", "start"]

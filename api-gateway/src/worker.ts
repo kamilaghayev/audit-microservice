@@ -26,6 +26,26 @@ export async function buildApp() {
     },
   );
 
+  // Swagger JSON-u backend-dən götürüb qaytar (proxy bəzən JSON-u düzgün ötürmür)
+  fastify.get("/auth/openapi.json", async (_request, reply) => {
+    const res = await fetch(`${config.services.auth}/openapi.json`);
+    if (!res.ok) return reply.status(res.status).send({ error: "Auth openapi.json unavailable" });
+    const json = await res.json();
+    return reply.type("application/json").send(json);
+  });
+  fastify.get("/audit-postgres/openapi.json", async (_request, reply) => {
+    const res = await fetch(`${config.services.auditPostgres}/openapi.json`);
+    if (!res.ok) return reply.status(res.status).send({ error: "Audit Postgres openapi.json unavailable" });
+    const json = await res.json();
+    return reply.type("application/json").send(json);
+  });
+  fastify.get("/audit-mongodb/openapi.json", async (_request, reply) => {
+    const res = await fetch(`${config.services.auditMongodb}/openapi.json`);
+    if (!res.ok) return reply.status(res.status).send({ error: "Audit MongoDB openapi.json unavailable" });
+    const json = await res.json();
+    return reply.type("application/json").send(json);
+  });
+
   await fastify.register(proxy, {
     upstream: config.services.auth,
     prefix: "/auth",

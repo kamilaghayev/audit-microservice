@@ -9,7 +9,7 @@ COPY tsconfig.json ./
 COPY src ./src
 RUN npm run build
 
-EXPOSE 8080
+EXPOSE 7070
 
-ENV GATEWAY_PORT=8080
+ENV GATEWAY_PORT=7070
 CMD ["node", "dist/index.js"]

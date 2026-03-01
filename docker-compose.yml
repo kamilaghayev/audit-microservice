@@ -56,9 +56,9 @@ services:
     build: ./auth
     container_name: auth
     ports:
-      - "3001:3001"
+      - "7071:7071"
     environment:
-      PORT: 3001
+      PORT: 7071
       PGHOST: postgres
       PGPORT: 5432
       PGUSER: audit
@@ -73,9 +73,9 @@ services:
     build: ./audit-logs-postgres
     container_name: audit-logs-postgres
     ports:
-      - "3000:3000"
+      - "7072:7072"
     environment:
-      PORT: 3000
+      PORT: 7072
       PGHOST: postgres-audit
       PGPORT: 5432
       PGUSER: audit
@@ -90,26 +90,26 @@ services:
     build: ./audit-logs-mongodb
     container_name: audit-logs-mongodb
     ports:
-      - "3002:3002"
+      - "7073:7073"
     environment:
-      PORT: 3002
+      PORT: 7073
       MONGODB_URI: mongodb://mongodb:27017
       MONGO_DATABASE: audit_db
     depends_on:
       mongodb:
         condition: service_healthy
 
-  # API Gateway
+  # API Gateway 
   api-gateway:
     build: ./api-gateway
     container_name: api-gateway
     ports:
-      - "8080:8080"
+      - "7070:7070"
     environment:
-      GATEWAY_PORT: 8080
-      AUTH_URL: http://auth:3001
-      AUDIT_POSTGRES_URL: http://audit-logs-postgres:3000
-      AUDIT_MONGODB_URL: http://audit-logs-mongodb:3002
+      GATEWAY_PORT: 7070
+      AUTH_URL: http://auth:7071
+      AUDIT_POSTGRES_URL: http://audit-logs-postgres:7072
+      AUDIT_MONGODB_URL: http://audit-logs-mongodb:7073
     depends_on:
       - auth
       - audit-logs-postgres
